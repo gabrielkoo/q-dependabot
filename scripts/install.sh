@@ -53,7 +53,16 @@ if [ $? -ne 0 ]; then
 else
     # Copy rules files
     echo -e "${YELLOW}Setting up rules...${NC}"
-    cp "$REPO_DIR/.amazonq/rules/"*.md "$RULES_DIR/"
+    # Create rules directory structure
+    mkdir -p "$RULES_DIR/core"
+    mkdir -p "$RULES_DIR/manifests"
+    mkdir -p "$RULES_DIR/workflows"
+    
+    # Copy all rules files including subdirectories
+    cp -R "$REPO_DIR/.amazonq/rules/core/"* "$RULES_DIR/core/" 2>/dev/null
+    cp -R "$REPO_DIR/.amazonq/rules/manifests/"* "$RULES_DIR/manifests/" 2>/dev/null
+    cp -R "$REPO_DIR/.amazonq/rules/workflows/"* "$RULES_DIR/workflows/" 2>/dev/null
+    cp "$REPO_DIR/.amazonq/rules/"*.md "$RULES_DIR/" 2>/dev/null
 
     # Copy config example
     if [ -f "$REPO_DIR/config.json" ]; then
