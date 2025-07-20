@@ -59,7 +59,7 @@ run_check() {
     validate_config || return 1
 
     # Add rules to Q context
-    q chat --no-interactive "/context add $RULES_DIR/*.md" > /dev/null 2>&1
+    q chat --no-interactive "/context add $RULES_DIR/**/*.md" > /dev/null 2>&1
 
     # Run the check
     echo -e "${BLUE}Running dependency check...${NC}"
@@ -92,7 +92,7 @@ create_pr() {
     fi
 
     # Add rules to Q context
-    q chat --no-interactive "/context add $RULES_DIR/*.md" > /dev/null 2>&1
+    q chat --no-interactive "/context add $RULES_DIR/**/*.md" > /dev/null 2>&1
 
     # Run the PR creation routine
     echo -e "${BLUE}Creating PR for $PACKAGE_INFO in $REPO_PATH...${NC}"
