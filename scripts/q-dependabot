@@ -19,37 +19,37 @@ validate_config() {
         echo -e "${YELLOW}Please run 'q-dependabot config' to create a configuration file.${NC}"
         return 1
     fi
-    
+
     # Check if jq is installed
     if ! command -v jq &> /dev/null; then
         echo -e "${RED}Error: jq is required but not installed.${NC}"
         echo -e "${YELLOW}Please install jq and try again.${NC}"
         return 1
     fi
-    
+
     # Validate JSON structure
     if ! jq empty "$CONFIG_FILE" 2>/dev/null; then
         echo -e "${RED}Error: Invalid JSON in configuration file.${NC}"
         return 1
     fi
-    
+
     # Check repository paths
     echo -e "${BLUE}Validating repository paths...${NC}"
     local invalid_paths=0
-    
+
     for repo_path in $(jq -r '.["dependent-repositories"][].path' "$CONFIG_FILE" 2>/dev/null); do
         if [ ! -d "$repo_path" ]; then
             echo -e "${YELLOW}Warning: Repository path does not exist: $repo_path${NC}"
             invalid_paths=$((invalid_paths+1))
         fi
     done
-    
+
     if [ $invalid_paths -gt 0 ]; then
         echo -e "${YELLOW}Found $invalid_paths invalid repository paths. Please update your configuration.${NC}"
     else
         echo -e "${GREEN}All repository paths are valid.${NC}"
     fi
-    
+
     return 0
 }
 
@@ -57,10 +57,10 @@ validate_config() {
 run_check() {
     # Validate configuration
     validate_config || return 1
-    
+
     # Add rules to Q context
-    q chat "/context add $RULES_DIR/*.md" > /dev/null 2>&1
-    
+    q chat --no-interactive "/context add $RULES_DIR/*.md" > /dev/null 2>&1
+
     # Run the check
     echo -e "${BLUE}Running dependency check...${NC}"
     q chat "Conduct both routine checks using the config file at $CONFIG_FILE"
@@ -73,27 +73,27 @@ create_pr() {
         echo -e "${YELLOW}Usage: q-dependabot pr /path/to/repo package-name version${NC}"
         return 1
     fi
-    
+
     REPO_PATH="$1"
     PACKAGE_INFO="$2"
-    
+
     if [ ! -d "$REPO_PATH" ]; then
         echo -e "${RED}Error: Repository path does not exist: $REPO_PATH${NC}"
         return 1
     fi
-    
+
     # Change to repository directory
     cd "$REPO_PATH" || return 1
-    
+
     # Check if git repository
     if [ ! -d ".git" ]; then
         echo -e "${RED}Error: Not a git repository: $REPO_PATH${NC}"
         return 1
     fi
-    
+
     # Add rules to Q context
-    q chat "/context add $RULES_DIR/*.md" > /dev/null 2>&1
-    
+    q chat --no-interactive "/context add $RULES_DIR/*.md" > /dev/null 2>&1
+
     # Run the PR creation routine
     echo -e "${BLUE}Creating PR for $PACKAGE_INFO in $REPO_PATH...${NC}"
     q chat "Run PR Creation Routine for repository at $REPO_PATH to update $PACKAGE_INFO"
@@ -146,10 +146,10 @@ case "$1" in
             echo -e "${BLUE}Uninstallation cancelled.${NC}"
             exit 0
         fi
-        
+
         echo -e "${YELLOW}Uninstalling q-dependabot...${NC}"
         EXECUTABLE_PATH=$(which q-dependabot 2>/dev/null)
-        
+
         if [ -z "$EXECUTABLE_PATH" ]; then
             # Try the default location
             if [ -f "/usr/local/bin/q-dependabot" ]; then
@@ -159,18 +159,18 @@ case "$1" in
                 exit 1
             fi
         fi
-        
+
         echo -e "${YELLOW}Removing q-dependabot executable from $EXECUTABLE_PATH...${NC}"
         sudo rm -f "$EXECUTABLE_PATH"
-        
+
         if [ $? -ne 0 ]; then
             echo -e "${RED}Failed to remove executable. You may need to run this command with sudo.${NC}"
             exit 1
         fi
-        
+
         echo -e "${YELLOW}Removing configuration directory...${NC}"
         rm -rf "$CONFIG_DIR"
-        
+
         echo -e "${GREEN}q-dependabot has been uninstalled successfully.${NC}"
         ;;
     help)
