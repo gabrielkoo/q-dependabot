@@ -17,8 +17,8 @@
     }
   ],
   "monitored-projects": [
-    "owner/repo1",
-    "owner/repo2",
-    "owner/repo3"
+    "openai/openai-python",
+    "langfuse/langfuse",
+    "requests/requests"
   ]
 }

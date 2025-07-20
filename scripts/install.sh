@@ -57,7 +57,7 @@ else
     mkdir -p "$RULES_DIR/core"
     mkdir -p "$RULES_DIR/manifests"
     mkdir -p "$RULES_DIR/workflows"
-    
+
     # Copy all rules files including subdirectories
     cp -R "$REPO_DIR/.amazonq/rules/core/"* "$RULES_DIR/core/" 2>/dev/null
     cp -R "$REPO_DIR/.amazonq/rules/manifests/"* "$RULES_DIR/manifests/" 2>/dev/null
@@ -85,8 +85,9 @@ if [ ! -f "$CONFIG_FILE" ]; then
     }
   ],
   "monitored-projects": [
-    "boto/boto3",
-    "aws-samples/aws-cdk-examples"
+    "openai/openai-python",
+    "langfuse/langfuse",
+    "requests/requests"
   ]
 }' > "$CONFIG_FILE"
     fi
