@@ -1,0 +1,193 @@
+#!/bin/bash
+
+# Configuration directory
+CONFIG_DIR="$HOME/.qdependabot"
+CONFIG_FILE="$CONFIG_DIR/config.json"
+RULES_DIR="$CONFIG_DIR/rules"
+
+# Colors for output
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+# Function to validate configuration
+validate_config() {
+    if [ ! -f "$CONFIG_FILE" ]; then
+        echo -e "${RED}Error: Configuration file not found at $CONFIG_FILE${NC}"
+        echo -e "${YELLOW}Please run 'q-dependabot config' to create a configuration file.${NC}"
+        return 1
+    fi
+    
+    # Check if jq is installed
+    if ! command -v jq &> /dev/null; then
+        echo -e "${RED}Error: jq is required but not installed.${NC}"
+        echo -e "${YELLOW}Please install jq and try again.${NC}"
+        return 1
+    fi
+    
+    # Validate JSON structure
+    if ! jq empty "$CONFIG_FILE" 2>/dev/null; then
+        echo -e "${RED}Error: Invalid JSON in configuration file.${NC}"
+        return 1
+    fi
+    
+    # Check repository paths
+    echo -e "${BLUE}Validating repository paths...${NC}"
+    local invalid_paths=0
+    
+    for repo_path in $(jq -r '.["dependent-repositories"][].path' "$CONFIG_FILE" 2>/dev/null); do
+        if [ ! -d "$repo_path" ]; then
+            echo -e "${YELLOW}Warning: Repository path does not exist: $repo_path${NC}"
+            invalid_paths=$((invalid_paths+1))
+        fi
+    done
+    
+    if [ $invalid_paths -gt 0 ]; then
+        echo -e "${YELLOW}Found $invalid_paths invalid repository paths. Please update your configuration.${NC}"
+    else
+        echo -e "${GREEN}All repository paths are valid.${NC}"
+    fi
+    
+    return 0
+}
+
+# Function to run the dependency check
+run_check() {
+    # Validate configuration
+    validate_config || return 1
+    
+    # Add rules to Q context
+    q chat "/context add $RULES_DIR/*.md" > /dev/null 2>&1
+    
+    # Run the check
+    echo -e "${BLUE}Running dependency check...${NC}"
+    q chat "Conduct both routine checks using the config file at $CONFIG_FILE"
+}
+
+# Function to create a PR for dependency updates
+create_pr() {
+    if [ -z "$1" ] || [ -z "$2" ]; then
+        echo -e "${RED}Error: Missing repository path or package information.${NC}"
+        echo -e "${YELLOW}Usage: q-dependabot pr /path/to/repo package-name version${NC}"
+        return 1
+    fi
+    
+    REPO_PATH="$1"
+    PACKAGE_INFO="$2"
+    
+    if [ ! -d "$REPO_PATH" ]; then
+        echo -e "${RED}Error: Repository path does not exist: $REPO_PATH${NC}"
+        return 1
+    fi
+    
+    # Change to repository directory
+    cd "$REPO_PATH" || return 1
+    
+    # Check if git repository
+    if [ ! -d ".git" ]; then
+        echo -e "${RED}Error: Not a git repository: $REPO_PATH${NC}"
+        return 1
+    fi
+    
+    # Add rules to Q context
+    q chat "/context add $RULES_DIR/*.md" > /dev/null 2>&1
+    
+    # Run the PR creation routine
+    echo -e "${BLUE}Creating PR for $PACKAGE_INFO in $REPO_PATH...${NC}"
+    q chat "Run PR Creation Routine for repository at $REPO_PATH to update $PACKAGE_INFO"
+}
+
+# Parse command line arguments
+case "$1" in
+    update)
+        echo -e "${YELLOW}Updating q-dependabot rules...${NC}"
+        if [ -d "$CONFIG_DIR/repo" ]; then
+            cd "$CONFIG_DIR/repo" && git pull origin main
+            cp "$CONFIG_DIR/repo/.amazonq/rules/"*.md "$RULES_DIR/"
+            echo -e "${GREEN}q-dependabot updated successfully!${NC}"
+        else
+            echo -e "${YELLOW}Repository not found. Please reinstall q-dependabot.${NC}"
+        fi
+        ;;
+    config)
+        if [ -z "$EDITOR" ]; then
+            EDITOR="nano"
+        fi
+        if [ ! -f "$CONFIG_FILE" ]; then
+            echo -e "${YELLOW}Configuration file not found. Creating default configuration...${NC}"
+            mkdir -p "$CONFIG_DIR"
+            echo '{
+  "dependent-repositories": [
+    {
+      "path": "/path/to/your/repo",
+      "manifests": ["requirements.txt", "Dockerfile", "package.json"]
+    }
+  ],
+  "monitored-projects": [
+    "owner/repo-name"
+  ]
+}' > "$CONFIG_FILE"
+        fi
+        $EDITOR "$CONFIG_FILE"
+        ;;
+    pr)
+        create_pr "$2" "$3"
+        ;;
+    validate)
+        validate_config
+        ;;
+    uninstall)
+        echo -e "${YELLOW}This will remove q-dependabot from your system and delete all configuration files.${NC}"
+        read -p "Are you sure you want to continue? (y/N) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo -e "${BLUE}Uninstallation cancelled.${NC}"
+            exit 0
+        fi
+        
+        echo -e "${YELLOW}Uninstalling q-dependabot...${NC}"
+        EXECUTABLE_PATH=$(which q-dependabot 2>/dev/null)
+        
+        if [ -z "$EXECUTABLE_PATH" ]; then
+            # Try the default location
+            if [ -f "/usr/local/bin/q-dependabot" ]; then
+                EXECUTABLE_PATH="/usr/local/bin/q-dependabot"
+            else
+                echo -e "${RED}q-dependabot executable not found in PATH. Nothing to uninstall.${NC}"
+                exit 1
+            fi
+        fi
+        
+        echo -e "${YELLOW}Removing q-dependabot executable from $EXECUTABLE_PATH...${NC}"
+        sudo rm -f "$EXECUTABLE_PATH"
+        
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}Failed to remove executable. You may need to run this command with sudo.${NC}"
+            exit 1
+        fi
+        
+        echo -e "${YELLOW}Removing configuration directory...${NC}"
+        rm -rf "$CONFIG_DIR"
+        
+        echo -e "${GREEN}q-dependabot has been uninstalled successfully.${NC}"
+        ;;
+    help)
+        echo "Usage: q-dependabot [command]"
+        echo ""
+        echo "Commands:"
+        echo "  (none)    Run dependency check"
+        echo "  update    Update to the latest version"
+        echo "  config    Edit configuration file"
+        echo "  pr        Create a PR for dependency updates"
+        echo "  validate  Validate configuration file"
+        echo "  uninstall Remove q-dependabot from your system"
+        echo "  help      Show this help message"
+        ;;
+    *)
+        run_check
+        ;;
+esac
+
+exit 0

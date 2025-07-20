@@ -1,0 +1,24 @@
+{
+  "dependent-repositories": [
+    {
+      "path": "/path/to/your/repo1",
+      "manifests": [
+        "requirements.txt",
+        "Dockerfile",
+        "setup.py"
+      ]
+    },
+    {
+      "path": "/path/to/your/repo2",
+      "manifests": [
+        "package.json",
+        "Dockerfile.dev"
+      ]
+    }
+  ],
+  "monitored-projects": [
+    "owner/repo1",
+    "owner/repo2",
+    "owner/repo3"
+  ]
+}
