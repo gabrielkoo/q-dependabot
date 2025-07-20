@@ -63,19 +63,26 @@ run_check() {
 
     # Run the check
     echo -e "${BLUE}Running dependency check...${NC}"
-    q chat "Conduct both routine checks using the config file at $CONFIG_FILE"
+    
+    # Pass any additional arguments to q chat
+    if [ $# -gt 0 ]; then
+        q chat $@ "Conduct both routine checks using the config file at $CONFIG_FILE"
+    else
+        q chat "Conduct both routine checks using the config file at $CONFIG_FILE"
+    fi
 }
 
 # Function to create a PR for dependency updates
 create_pr() {
     if [ -z "$1" ] || [ -z "$2" ]; then
         echo -e "${RED}Error: Missing repository path or package information.${NC}"
-        echo -e "${YELLOW}Usage: q-dependabot pr /path/to/repo package-name version${NC}"
+        echo -e "${YELLOW}Usage: q-dependabot pr /path/to/repo package-name version [additional args]${NC}"
         return 1
     fi
 
     REPO_PATH="$1"
     PACKAGE_INFO="$2"
+    shift 2  # Remove the first two arguments
 
     if [ ! -d "$REPO_PATH" ]; then
         echo -e "${RED}Error: Repository path does not exist: $REPO_PATH${NC}"
@@ -96,7 +103,13 @@ create_pr() {
 
     # Run the PR creation routine
     echo -e "${BLUE}Creating PR for $PACKAGE_INFO in $REPO_PATH...${NC}"
-    q chat "Run PR Creation Routine for repository at $REPO_PATH to update $PACKAGE_INFO"
+    
+    # Pass any additional arguments to q chat
+    if [ $# -gt 0 ]; then
+        q chat $@ "Run PR Creation Routine for repository at $REPO_PATH to update $PACKAGE_INFO"
+    else
+        q chat "Run PR Creation Routine for repository at $REPO_PATH to update $PACKAGE_INFO"
+    fi
 }
 
 # Parse command line arguments
@@ -133,7 +146,11 @@ case "$1" in
         $EDITOR "$CONFIG_FILE"
         ;;
     pr)
-        create_pr "$2" "$3"
+        shift  # Remove 'pr' from arguments
+        repo_path="$1"
+        package_info="$2"
+        shift 2  # Remove repo_path and package_info from arguments
+        create_pr "$repo_path" "$package_info" "$@"
         ;;
     validate)
         validate_config
@@ -174,7 +191,7 @@ case "$1" in
         echo -e "${GREEN}q-dependabot has been uninstalled successfully.${NC}"
         ;;
     help)
-        echo "Usage: q-dependabot [command]"
+        echo "Usage: q-dependabot [command] [options]"
         echo ""
         echo "Commands:"
         echo "  (none)    Run dependency check"
@@ -184,9 +201,13 @@ case "$1" in
         echo "  validate  Validate configuration file"
         echo "  uninstall Remove q-dependabot from your system"
         echo "  help      Show this help message"
+        echo ""
+        echo "Options:"
+        echo "  Any additional options (like --model model-name) will be passed to the q chat command"
         ;;
     *)
-        run_check
+        # If the first argument doesn't match any command, assume it's for run_check
+        run_check "$@"
         ;;
 esac
 
