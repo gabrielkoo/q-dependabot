@@ -2,6 +2,13 @@
 
 A user-driven dependency monitoring solution powered by Amazon Q Developer CLI that generates intelligent package release digests for your projects.
 
+
+## Screenshots
+
+![Placeholder: Screenshot of q-dependabot CLI output](./images/q-dependabot-screenshot.png)
+
+Refer to [./images/](./images/) for more screenshots of q-dependabot in action.
+
 ## Overview
 
 q-dependabot is an automation solution that leverages Amazon Q Developer to monitor package updates across your projects and repositories. Unlike traditional dependency monitoring tools that are repository-centric, q-dependabot is user-centric, allowing you to monitor any repositories and projects that matter to you, regardless of ownership.
