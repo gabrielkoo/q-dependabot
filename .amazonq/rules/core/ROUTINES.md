@@ -75,3 +75,5 @@ If the user requests to create a PR for updating dependencies:
   - bedrock-chat: 2.2.1 → 2.3.0 (requirements.txt)
   ⚠️ Breaking change detected! Python 3.9+ now required.
 ```
+
+This output should be just echo-ed back to the user unless specified. Do not create any local files or make any changes to the user's repositories unless explicitly requested.
